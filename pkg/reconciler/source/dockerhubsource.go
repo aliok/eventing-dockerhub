@@ -16,18 +16,18 @@ import (
 	servingclientset "knative.dev/serving/pkg/client/clientset/versioned"
 	servinglisters "knative.dev/serving/pkg/client/listers/serving/v1"
 
+	//knative/eventing imports
+	eventingclient "knative.dev/eventing/pkg/client/clientset/versioned"
+
 	// github.com/tom24d/eventing-dockerhub imports
 	"github.com/tom24d/eventing-dockerhub/pkg/apis/sources/v1alpha1"
 	dhreconciler "github.com/tom24d/eventing-dockerhub/pkg/client/injection/reconciler/sources/v1alpha1/dockerhubsource"
-	"github.com/tom24d/eventing-dockerhub/pkg/reconciler/source/resources"
+	"github.com/tom24d/eventing-dockerhub/pkg/reconciler/resources"
 
 	// knative.dev/pkg imports
-	"knative.dev/pkg/apis"
 	"knative.dev/pkg/controller"
-	"knative.dev/pkg/logging"
 	pkgreconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/resolver"
-	duckv1 "knative.dev/pkg/apis/duck/v1"
 
 )
 
@@ -44,6 +44,8 @@ type Reconciler struct {
 
 	servingClientSet servingclientset.Interface
 	servingLister    servinglisters.ServiceLister
+
+	eventingClientSet eventingclient.Interface
 
 	receiveAdapterImage string
 
@@ -93,11 +95,14 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.DockerHubS
 		return fmt.Errorf("service %q is not owned by DockerHubSource %q", ksvc.Name, src.Name)
 	}
 
+	//TODO make sinkBinding
+
+
 	src.Status.ObservedGeneration = src.Generation
 	return nil
 }
 
-func (r *Reconciler) getOwnedService(ctx context.Context, src *v1alpha1.DockerhubSource) (*v1.Service, error) {
+func (r *Reconciler) getOwnedService(ctx context.Context, src *v1alpha1.DockerHubSource) (*v1.Service, error) {
 	serviceList, err := r.servingLister.Services(src.Namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err

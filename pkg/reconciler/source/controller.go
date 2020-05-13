@@ -15,6 +15,9 @@ import (
 	dhreconciler "github.com/tom24d/eventing-dockerhub/pkg/client/injection/reconciler/sources/v1alpha1/dockerhubsource"
 	serviceclient "knative.dev/serving/pkg/client/injection/client"
 	kserviceinformer "knative.dev/serving/pkg/client/injection/informers/serving/v1/service"
+	sinkbindinginformer "knative.dev/eventing/pkg/client/injection/informers/sources/v1alpha2/sinkbinding"
+	eventingclient "knative.dev/eventing/pkg/client/injection/client"
+
 
 	//knative.dev/pkg import
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
@@ -40,11 +43,13 @@ func NewController(
 
 	dockerhubInformer := dockerhubinformer.Get(ctx)
 	ksvcInformer := kserviceinformer.Get(ctx)
+	sinkBindingInformer := sinkbindinginformer.Get(ctx)
 
 	r := &Reconciler{
 		kubeClientSet: kubeclient.Get(ctx),
 		servingLister: ksvcInformer.Lister(),
 		servingClientSet: serviceclient.Get(ctx),
+		eventingClientSet: eventingclient.Get(ctx),
 		receiveAdapterImage: raImage,
 	}
 
@@ -59,6 +64,11 @@ func NewController(
 	ksvcInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		FilterFunc: controller.FilterGroupKind(v1alpha1.Kind("DockerHubSource")),
 		Handler: controller.HandleAll(impl.EnqueueControllerOf),
+	})
+
+	sinkBindingInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+		FilterFunc: controller.FilterGroupKind(v1alpha1.Kind("DockerHubSource")),
+		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
 	})
 
 	return impl
