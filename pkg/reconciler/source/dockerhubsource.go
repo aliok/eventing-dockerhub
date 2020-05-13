@@ -28,6 +28,8 @@ import (
 	"knative.dev/pkg/controller"
 	pkgreconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/resolver"
+	"knative.dev/pkg/logging"
+
 
 )
 
@@ -60,24 +62,6 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.DockerHubS
 	src.Status.InitializeConditions()
 	src.Status.ObservedGeneration = src.Generation
 
-	dest := src.Spec.Sink.DeepCopy()
-	if dest.Ref != nil {
-		// To call URIFromDestination(), dest.Ref must have a Namespace. If there is
-		// no Namespace defined in dest.Ref, we will use the Namespace of the source
-		// as the Namespace of dest.Ref.
-		if dest.Ref.Namespace == "" {
-			dest.Ref.Namespace = src.GetNamespace()
-		}
-	}
-
-	uri, err := r.sinkResolver.URIFromDestinationV1(*dest, src)
-	if err != nil {
-		src.Status.MarkNoSink("NotFound", "%s", err)
-		return err
-	}
-
-	src.Status.MarkSink(uri)
-
 	ksvc, err := r.getOwnedService(ctx, src)
 	if apierrors.IsNotFound(err) {
 		ksvc = resources.MakeService(&resources.ServiceArgs{
@@ -96,6 +80,10 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.DockerHubS
 	}
 
 	//TODO make sinkBinding
+	if ksvc != nil {
+		logging.FromContext(ctx).Info("going to ReconcileSinkBinding")
+		//sb, event := r.ReconcileSinkBinding(ctx, src, src.Spec.)
+	}
 
 
 	src.Status.ObservedGeneration = src.Generation

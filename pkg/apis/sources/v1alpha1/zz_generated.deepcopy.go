@@ -92,7 +92,7 @@ func (in *DockerHubSourceSpec) DeepCopyInto(out *DockerHubSourceSpec) {
 	*out = *in
 	if in.Sink != nil {
 		in, out := &in.Sink, &out.Sink
-		*out = new(v1.Destination)
+		*out = new(v1.SourceSpec)
 		(*in).DeepCopyInto(*out)
 	}
 	return

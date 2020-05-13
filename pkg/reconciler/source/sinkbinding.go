@@ -10,7 +10,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/eventing/pkg/apis/sources/v1alpha2"
-	eventingclient "knative.dev/eventing/pkg/client/clientset/versioned"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
@@ -37,17 +36,13 @@ func newSinkBindingUpdated(namespace, name string) pkgreconciler.Event {
 	return pkgreconciler.NewEvent(corev1.EventTypeNormal, "SinkBindingUpdated", "updated SinkBinding: \"%s/%s\"", namespace, name)
 }
 
-type SinkBindingReconciler struct {
-	EventingClientSet eventingclient.Interface
-}
-
-func (r *SinkBindingReconciler) ReconcileSinkBinding(ctx context.Context, owner kmeta.OwnerRefable, source duckv1.SourceSpec, subject tracker.Reference) (*v1alpha2.SinkBinding, pkgreconciler.Event) {
+func (r *Reconciler) ReconcileSinkBinding(ctx context.Context, owner kmeta.OwnerRefable, source duckv1.SourceSpec, subject tracker.Reference) (*v1alpha2.SinkBinding, pkgreconciler.Event) {
 	expected := resources.MakeSinkBinding(owner, source, subject)
 
 	namespace := owner.GetObjectMeta().GetNamespace()
-	sb, err := r.EventingClientSet.SourcesV1alpha2().SinkBindings(namespace).Get(expected.Name, metav1.GetOptions{})
+	sb, err := r.eventingClientSet.SourcesV1alpha2().SinkBindings(namespace).Get(expected.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		sb, err = r.EventingClientSet.SourcesV1alpha2().SinkBindings(namespace).Create(expected)
+		sb, err = r.eventingClientSet.SourcesV1alpha2().SinkBindings(namespace).Create(expected)
 		if err != nil {
 			return nil, newSinkBindingFailed(expected.Namespace, expected.Name, err)
 		}
@@ -59,7 +54,7 @@ func (r *SinkBindingReconciler) ReconcileSinkBinding(ctx context.Context, owner 
 			sb.Name, owner.GetGroupVersionKind().Kind, owner.GetObjectMeta().GetName())
 	} else if r.specChanged(sb.Spec, expected.Spec) {
 		sb.Spec = expected.Spec
-		if sb, err = r.EventingClientSet.SourcesV1alpha2().SinkBindings(namespace).Update(sb); err != nil {
+		if sb, err = r.eventingClientSet.SourcesV1alpha2().SinkBindings(namespace).Update(sb); err != nil {
 			return sb, err
 		}
 		return sb, newSinkBindingUpdated(sb.Namespace, sb.Name)
@@ -69,7 +64,7 @@ func (r *SinkBindingReconciler) ReconcileSinkBinding(ctx context.Context, owner 
 	return sb, nil
 }
 
-func (r *SinkBindingReconciler) specChanged(oldSpec v1alpha2.SinkBindingSpec, newSpec v1alpha2.SinkBindingSpec) bool {
+func (r *Reconciler) specChanged(oldSpec v1alpha2.SinkBindingSpec, newSpec v1alpha2.SinkBindingSpec) bool {
 	if !equality.Semantic.DeepDerivative(newSpec, oldSpec) {
 		return true
 	}

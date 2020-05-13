@@ -65,7 +65,7 @@ type DockerHubSourceSpec struct {
 	OwnerAndRepository string `json:"ownerAndRepository"`
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
-	Sink *duckv1.Destination `json:"sink"`
+	Sink *duckv1.SourceSpec `json:",inline"`
 }
 
 type DockerHubSourceStatus struct {
