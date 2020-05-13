@@ -61,7 +61,6 @@ type DockerHubSourceSpec struct {
 	// events from an entire organization.
 	// Examples:
 	//  myuser/project
-	//  myorganization
 	// +kubebuilder:validation:MinLength=1
 	OwnerAndRepository string `json:"ownerAndRepository"`
 	// +optional

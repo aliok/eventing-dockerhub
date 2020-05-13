@@ -8,5 +8,7 @@ require (
 	k8s.io/apimachinery v0.18.2
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	knative.dev/eventing v0.14.2
+	knative.dev/eventing-contrib v0.14.1
 	knative.dev/pkg v0.0.0-20200511223446-de5c590700ff
+	knative.dev/serving v0.14.0
 )
