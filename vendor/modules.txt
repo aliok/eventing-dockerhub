@@ -99,6 +99,8 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
+# github.com/google/go-containerregistry v0.0.0-20200123184029-53ce695e4179
+github.com/google/go-containerregistry/pkg/name
 # github.com/google/gofuzz v1.1.0
 github.com/google/gofuzz
 # github.com/google/uuid v1.1.1
@@ -189,6 +191,7 @@ golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
+golang.org/x/net/http2/h2c
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
@@ -349,6 +352,7 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 # k8s.io/apimachinery v0.18.2
+k8s.io/apimachinery/pkg/api/apitesting/fuzzer
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
@@ -606,7 +610,11 @@ knative.dev/eventing/pkg/apis/duck
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
 knative.dev/pkg/apis/duck/v1
+knative.dev/pkg/apis/duck/v1alpha1
+knative.dev/pkg/apis/duck/v1beta1
+knative.dev/pkg/apis/testing/fuzzer
 knative.dev/pkg/changeset
+knative.dev/pkg/client/injection/ducks/duck/v1/addressable
 knative.dev/pkg/client/injection/kube/client
 knative.dev/pkg/codegen/cmd/injection-gen
 knative.dev/pkg/codegen/cmd/injection-gen/args
@@ -615,15 +623,56 @@ knative.dev/pkg/configmap
 knative.dev/pkg/controller
 knative.dev/pkg/hack
 knative.dev/pkg/injection
+knative.dev/pkg/injection/clients/dynamicclient
 knative.dev/pkg/kmeta
 knative.dev/pkg/kmp
 knative.dev/pkg/logging
 knative.dev/pkg/logging/logkey
 knative.dev/pkg/metrics
 knative.dev/pkg/metrics/metricskey
+knative.dev/pkg/network
+knative.dev/pkg/profiling
+knative.dev/pkg/ptr
 knative.dev/pkg/reconciler
+knative.dev/pkg/resolver
 knative.dev/pkg/tracker
 knative.dev/pkg/webhook/resourcesemantics
+# knative.dev/serving v0.14.0
+knative.dev/serving/pkg/apis/autoscaling
+knative.dev/serving/pkg/apis/autoscaling/v1alpha1
+knative.dev/serving/pkg/apis/config
+knative.dev/serving/pkg/apis/networking
+knative.dev/serving/pkg/apis/networking/v1alpha1
+knative.dev/serving/pkg/apis/serving
+knative.dev/serving/pkg/apis/serving/v1
+knative.dev/serving/pkg/apis/serving/v1alpha1
+knative.dev/serving/pkg/apis/serving/v1beta1
+knative.dev/serving/pkg/autoscaler/config
+knative.dev/serving/pkg/client/clientset/versioned
+knative.dev/serving/pkg/client/clientset/versioned/scheme
+knative.dev/serving/pkg/client/clientset/versioned/typed/autoscaling/v1alpha1
+knative.dev/serving/pkg/client/clientset/versioned/typed/networking/v1alpha1
+knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1
+knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1alpha1
+knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1beta1
+knative.dev/serving/pkg/client/informers/externalversions
+knative.dev/serving/pkg/client/informers/externalversions/autoscaling
+knative.dev/serving/pkg/client/informers/externalversions/autoscaling/v1alpha1
+knative.dev/serving/pkg/client/informers/externalversions/internalinterfaces
+knative.dev/serving/pkg/client/informers/externalversions/networking
+knative.dev/serving/pkg/client/informers/externalversions/networking/v1alpha1
+knative.dev/serving/pkg/client/informers/externalversions/serving
+knative.dev/serving/pkg/client/informers/externalversions/serving/v1
+knative.dev/serving/pkg/client/informers/externalversions/serving/v1alpha1
+knative.dev/serving/pkg/client/informers/externalversions/serving/v1beta1
+knative.dev/serving/pkg/client/injection/client
+knative.dev/serving/pkg/client/injection/informers/factory
+knative.dev/serving/pkg/client/injection/informers/serving/v1/service
+knative.dev/serving/pkg/client/listers/autoscaling/v1alpha1
+knative.dev/serving/pkg/client/listers/networking/v1alpha1
+knative.dev/serving/pkg/client/listers/serving/v1
+knative.dev/serving/pkg/client/listers/serving/v1alpha1
+knative.dev/serving/pkg/client/listers/serving/v1beta1
 # knative.dev/test-infra v0.0.0-20200509000045-c7114387eed5
 knative.dev/test-infra/scripts
 # sigs.k8s.io/structured-merge-diff/v3 v3.0.0

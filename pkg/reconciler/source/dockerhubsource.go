@@ -35,7 +35,7 @@ const (
 	// controllerAgentName is the string used by this controller to identify
 	// itself when creating events.
 	controllerAgentName = "dockerhub-source-controller"
-	raImageEnvVar       = "GH_RA_IMAGE"
+	raImageEnvVar       = "DH_RA_IMAGE"
 )
 
 // Reconciler reconciles a DockerHubSource object
