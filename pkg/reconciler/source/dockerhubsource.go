@@ -29,6 +29,7 @@ import (
 	pkgreconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/resolver"
 	"knative.dev/pkg/logging"
+	"knative.dev/pkg/tracker"
 
 
 )
@@ -79,12 +80,23 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.DockerHubS
 		return fmt.Errorf("service %q is not owned by DockerHubSource %q", ksvc.Name, src.Name)
 	}
 
-	//TODO make sinkBinding
+	// make sinkBinding for created kservice.
 	if ksvc != nil {
 		logging.FromContext(ctx).Info("going to ReconcileSinkBinding")
-		//sb, event := r.ReconcileSinkBinding(ctx, src, src.Spec.)
+		sb, event := r.ReconcileSinkBinding(ctx, src, src.Spec.SourceSpec, tracker.Reference{
+			APIVersion: v1.SchemeGroupVersion.String(),
+			Kind: "Service",
+			Namespace: ksvc.Namespace,
+			Name: ksvc.Name,
+		})
+		logging.FromContext(ctx).Infof("ReconcileSinkBinding returned %#v", sb)
+		if sb != nil {
+			src.Status.MarkSink(sb.Status.SinkURI)
+		}
+		if event != nil {
+			return event
+		}
 	}
-
 
 	src.Status.ObservedGeneration = src.Generation
 	return nil
