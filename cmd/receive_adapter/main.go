@@ -1,10 +1,11 @@
 package main
 
-// import (
-// 	"knative.dev/eventing/pkg/adapter/v2"
-// 	myadapter "knative.dev/sample-source/pkg/adapter"
-// )
+import (
+	"knative.dev/eventing/pkg/adapter/v2"
+	myadapter "github.com/tom24d/eventing-dockerhub/pkg/adapter"
+)
 
-// func main() {
-// 	adapter.Main("sample-source", myadapter.NewEnv, myadapter.NewAdapter)
-// }
+func main() {
+	// TODO impl to read env.
+	adapter.Main("dockerhub-source", myadapter.NewEnv, myadapter.NewAdapter)
+}
