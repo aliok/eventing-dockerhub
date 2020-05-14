@@ -16,6 +16,8 @@ import (
 type ServiceArgs struct {
 	ReceiveAdapterImage string
 	Source              *sourcesv1alpha1.DockerHubSource
+	EventSource         string
+	AdditionalEnvs      []corev1.EnvVar
 }
 
 // MakeService generates, but does not create, a Service for the given
@@ -25,10 +27,6 @@ func MakeService(args *ServiceArgs) *v1.Service {
 		"receive-adapter": "dockerhub",
 	}
 	sinkURI := args.Source.Status.SinkURI
-	env := []corev1.EnvVar{{
-		Name:  "SINK",
-		Value: sinkURI.String(),
-	}}
 	containerArgs := []string{fmt.Sprintf("--sink=%s", sinkURI.String())}
 	return &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -46,8 +44,11 @@ func MakeService(args *ServiceArgs) *v1.Service {
 						PodSpec: corev1.PodSpec{
 							Containers: []corev1.Container{{
 								Image: args.ReceiveAdapterImage,
-								Env:   env,
-								Args:  containerArgs,
+								Env: append(
+									makeEnv(args.EventSource),
+									args.AdditionalEnvs...,
+								),
+								Args: containerArgs,
 							}},
 						},
 					},
@@ -55,4 +56,28 @@ func MakeService(args *ServiceArgs) *v1.Service {
 			},
 		},
 	}
+}
+
+func makeEnv(eventSource string) []corev1.EnvVar {
+	return []corev1.EnvVar{{
+		Name:  "EVENT_SOURCE",
+		Value: eventSource,
+	}, {
+		Name: "NAMESPACE",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "metadata.namespace",
+			},
+		},
+	}, {
+		Name: "NAME",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "metadata.name",
+			},
+		},
+	}, {
+		Name:  "METRICS_DOMAIN",
+		Value: "knative.dev/eventing",
+	}}
 }

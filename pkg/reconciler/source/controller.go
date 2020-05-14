@@ -13,26 +13,26 @@ import (
 	sourcescheme "github.com/tom24d/eventing-dockerhub/pkg/client/clientset/versioned/scheme"
 	dockerhubinformer "github.com/tom24d/eventing-dockerhub/pkg/client/injection/informers/sources/v1alpha1/dockerhubsource"
 	dhreconciler "github.com/tom24d/eventing-dockerhub/pkg/client/injection/reconciler/sources/v1alpha1/dockerhubsource"
+	eventingclient "knative.dev/eventing/pkg/client/injection/client"
+	sinkbindinginformer "knative.dev/eventing/pkg/client/injection/informers/sources/v1alpha2/sinkbinding"
 	serviceclient "knative.dev/serving/pkg/client/injection/client"
 	kserviceinformer "knative.dev/serving/pkg/client/injection/informers/serving/v1/service"
-	sinkbindinginformer "knative.dev/eventing/pkg/client/injection/informers/sources/v1alpha2/sinkbinding"
-	eventingclient "knative.dev/eventing/pkg/client/injection/client"
 
+	//knative.dev/eventing imports
+	reconcilersource "knative.dev/eventing/pkg/reconciler/source"
 
 	//knative.dev/pkg import
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
-	"knative.dev/pkg/controller"
 	"knative.dev/pkg/configmap"
+	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 
 	"github.com/tom24d/eventing-dockerhub/pkg/apis/sources/v1alpha1"
-
 )
-
 
 func NewController(
 	ctx context.Context,
-	_ configmap.Watcher,
+	cmw configmap.Watcher,
 ) *controller.Impl {
 
 	raImage, defined := os.LookupEnv(raImageEnvVar)
@@ -46,11 +46,12 @@ func NewController(
 	sinkBindingInformer := sinkbindinginformer.Get(ctx)
 
 	r := &Reconciler{
-		kubeClientSet: kubeclient.Get(ctx),
-		servingLister: ksvcInformer.Lister(),
-		servingClientSet: serviceclient.Get(ctx),
-		eventingClientSet: eventingclient.Get(ctx),
+		kubeClientSet:       kubeclient.Get(ctx),
+		servingLister:       ksvcInformer.Lister(),
+		servingClientSet:    serviceclient.Get(ctx),
+		eventingClientSet:   eventingclient.Get(ctx),
 		receiveAdapterImage: raImage,
+		configAccessor:      reconcilersource.WatchConfigurations(ctx, "dockerhub-source", cmw),
 	}
 
 	impl := dhreconciler.NewImpl(ctx, r)
@@ -63,7 +64,7 @@ func NewController(
 
 	ksvcInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		FilterFunc: controller.FilterGroupKind(v1alpha1.Kind("DockerHubSource")),
-		Handler: controller.HandleAll(impl.EnqueueControllerOf),
+		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
 	})
 
 	sinkBindingInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{

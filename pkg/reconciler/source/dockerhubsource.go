@@ -18,6 +18,7 @@ import (
 
 	//knative/eventing imports
 	eventingclient "knative.dev/eventing/pkg/client/clientset/versioned"
+	reconcilersource "knative.dev/eventing/pkg/reconciler/source"
 
 	// github.com/tom24d/eventing-dockerhub imports
 	"github.com/tom24d/eventing-dockerhub/pkg/apis/sources/v1alpha1"
@@ -26,12 +27,10 @@ import (
 
 	// knative.dev/pkg imports
 	"knative.dev/pkg/controller"
+	"knative.dev/pkg/logging"
 	pkgreconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/resolver"
-	"knative.dev/pkg/logging"
 	"knative.dev/pkg/tracker"
-
-
 )
 
 const (
@@ -53,6 +52,8 @@ type Reconciler struct {
 	receiveAdapterImage string
 
 	sinkResolver *resolver.URIResolver
+
+	configAccessor reconcilersource.ConfigAccessor
 }
 
 // // Check that our Reconciler implements Interface
@@ -66,17 +67,19 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.DockerHubS
 	ksvc, err := r.getOwnedService(ctx, src)
 	if apierrors.IsNotFound(err) {
 		ksvc = resources.MakeService(&resources.ServiceArgs{
-			Source: src,
+			Source:              src,
 			ReceiveAdapterImage: r.receiveAdapterImage,
+			EventSource:         src.Namespace + "/" + src.Name,
+			AdditionalEnvs:      r.configAccessor.ToEnvVars(), // Grab config envs for tracing/logging/metrics
 		})
 		ksvc, err = r.servingClientSet.ServingV1().Services(src.Namespace).Create(ksvc)
 		if err != nil {
 			return err
 		}
 		controller.GetEventRecorder(ctx).Eventf(src, corev1.EventTypeNormal, "ServiceCreated", "Created Service %q", ksvc.Name)
-	}else if err != nil {
+	} else if err != nil {
 		return err
-	}else if !metav1.IsControlledBy(ksvc, src) {
+	} else if !metav1.IsControlledBy(ksvc, src) {
 		return fmt.Errorf("service %q is not owned by DockerHubSource %q", ksvc.Name, src.Name)
 	}
 
@@ -85,9 +88,9 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.DockerHubS
 		logging.FromContext(ctx).Info("going to ReconcileSinkBinding")
 		sb, event := r.ReconcileSinkBinding(ctx, src, src.Spec.SourceSpec, tracker.Reference{
 			APIVersion: v1.SchemeGroupVersion.String(),
-			Kind: "Service",
-			Namespace: ksvc.Namespace,
-			Name: ksvc.Name,
+			Kind:       "Service",
+			Namespace:  ksvc.Namespace,
+			Name:       ksvc.Name,
 		})
 		logging.FromContext(ctx).Infof("ReconcileSinkBinding returned %#v", sb)
 		if sb != nil {
@@ -102,7 +105,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.DockerHubS
 	return nil
 }
 
-func (r *Reconciler) getOwnedService(ctx context.Context, src *v1alpha1.DockerHubSource) (*v1.Service, error) {
+func (r *Reconciler) getOwnedService(_ context.Context, src *v1alpha1.DockerHubSource) (*v1.Service, error) {
 	serviceList, err := r.servingLister.Services(src.Namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
