@@ -53,13 +53,13 @@ kind: Service
 metadata:
   labels:
     eventing.knative.dev/release: devel
-    role: sample-source-webhook
-  name: sample-source-webhook
-  namespace: knative-samples
+    role: dockerhub-source-webhook
+  name: dockerhub-source-webhook
+  namespace: knative-sources
 spec:
   ports:
     - name: https-webhook
       port: 443
       targetPort: 8443
   selector:
-    role: sample-source-webhook
+    role: dockerhub-source-webhook
