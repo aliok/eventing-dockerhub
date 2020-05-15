@@ -1,15 +1,23 @@
 package adapter
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"time"
+
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"go.uber.org/zap"
 	dockerhub "gopkg.in/go-playground/webhooks.v5/docker"
+
+	//knative.dev imports
 	"knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
-	"net/http"
-	"time"
+
+
+	"github.com/tom24d/eventing-dockerhub/pkg/adapter/resources"
 )
 
 const (
@@ -100,7 +108,6 @@ func (a *Adapter) HandleEvent(payload interface{}, header http.Header) {
 func (a *Adapter) newRouter(hook *dockerhub.Webhook) *http.ServeMux {
 	router := http.NewServeMux()
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// TODO Add more
 		payload, err := hook.Parse(r, dockerhub.BuildEvent)
 
 		if err != nil {
@@ -119,19 +126,65 @@ func (a *Adapter) newRouter(hook *dockerhub.Webhook) *http.ServeMux {
 
 		err = a.handleEvent(payload, r.Header)
 
+		var callbackURL = ""
+		if p, ok := payload.(*dockerhub.BuildPayload); ok {
+			callbackURL = p.CallbackURL
+		}
+
 		if err != nil {
 			a.logger.Errorf("event handler error: %v", err)
 			w.WriteHeader(400)
 			w.Write([]byte(err.Error()))
+			// TODO
+			a.emitCallback(callbackURL, false)
 			return
 		}
 
-		// TODO add callback
+		// TODO
+		a.emitCallback(callbackURL, true)
+		// TODO think what is "event processed"?
 		a.logger.Infof("event processed")
 		w.WriteHeader(202)
 		w.Write([]byte("accepted"))
 	})
 	return router
+}
+
+// TODO replace in ./resources or send them PR
+func (a *Adapter) emitCallback(callbackURL string, success bool) error {
+	// TODO do right
+	if callbackURL == "" {
+		return fmt.Errorf("callbackURL is not set")
+	}
+
+	var callback *resources.CallbackPayload
+
+	callback = &resources.CallbackPayload{
+		// TODO specific
+		Context: "context",
+		Description: "desc",
+		TargetURL: "knative dockerhub source",
+	}
+
+	if success {
+		callback.State = resources.StatusSuccess
+	} else {
+		callback.State = resources.StatusFailure
+	}
+
+	payload, err := json.Marshal(callback)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(callbackURL, "application/json", bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("sending callback failed")
+	}
+	return nil
 }
 
 
