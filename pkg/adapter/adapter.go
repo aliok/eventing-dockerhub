@@ -1,13 +1,14 @@
 package adapter
 
 import (
-	"fmt"
-	"go.uber.org/zap"
-	"net/http"
 	"context"
+	"fmt"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"go.uber.org/zap"
+	dockerhub "gopkg.in/go-playground/webhooks.v5/docker"
 	"knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
+	"net/http"
 	"time"
 )
 
@@ -19,6 +20,7 @@ const (
 type envConfig struct {
 	// Include the standard adapter.EnvConfig used by all adapters.
 	adapter.EnvConfig
+
 	// Port to listen incoming connections
 	Port string `envconfig:"PORT" default:"8080"`
 
@@ -50,10 +52,14 @@ func NewAdapter(ctx context.Context, aEnv adapter.EnvConfigAccessor, ceClient cl
 // Returns if stopCh is closed or Send() returns an error.
 func (a *Adapter) Start(stopCh <-chan struct{}) error {
 	done := make(chan bool, 1)
+	hook, err := dockerhub.New()
+	if err != nil {
+		return fmt.Errorf("cannot create gitlab hook: %v", err)
+	}
 
 	server := &http.Server{
 		Addr:    ":" + a.port,
-		Handler: a.newRouter(),
+		Handler: a.newRouter(hook),
 	}
 
 	go gracefulShutdown(server, a.logger, stopCh, done)
@@ -87,33 +93,54 @@ func (a *Adapter) HandleEvent(payload interface{}, header http.Header) {
 	hdr := http.Header(header)
 	err := a.handleEvent(payload, hdr)
 	if err != nil {
-		//log.Printf("unexpected error handling GitHub event: %s", err)
+		a.logger.Errorf("unexpected error handling DockerHub event: %s", err)
 	}
 }
 
-func (a *Adapter) newRouter() *http.ServeMux {
+func (a *Adapter) newRouter(hook *dockerhub.Webhook) *http.ServeMux {
 	router := http.NewServeMux()
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// TODO Add more
-		//err = ra.handleEvent(payload, r.Header)
-		//if err != nil {
-		//	ra.logger.Errorf("event handler error: %v", err)
-		//	w.WriteHeader(400)
-		//	w.Write([]byte(err.Error()))
-		//	return
-		//}
-		//ra.logger.Infof("event processed")
-		//w.WriteHeader(202)
-		//w.Write([]byte("accepted"))
+		payload, err := hook.Parse(r, dockerhub.BuildEvent)
+
+		if err != nil {
+			if err == dockerhub.ErrInvalidHTTPMethod {
+				w.Write([]byte("event not send to sink as invalid http method"))
+				return
+			} else if err == dockerhub.ErrParsingPayload {
+				w.Write([]byte("event not send to sink as parsing payload err"))
+				return
+			}
+			a.logger.Errorf("hook parser error: %v", err)
+			w.WriteHeader(400)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		err = a.handleEvent(payload, r.Header)
+
+		if err != nil {
+			a.logger.Errorf("event handler error: %v", err)
+			w.WriteHeader(400)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		// TODO add callback
+		a.logger.Infof("event processed")
+		w.WriteHeader(202)
+		w.Write([]byte("accepted"))
 	})
 	return router
 }
 
+
+// handleEvent transforms payload to CloudEvent, then try to send to sink.
 func (a *Adapter) handleEvent(payload interface{}, hdr http.Header) error {
 	dockerHubEventType := hdr.Get("X-" + DHHeaderEvent)
 	eventID := hdr.Get("X-" + DHHeaderDelivery)
 
-	event := cloudevents.NewEvent(cloudevents.VersionV1)
+	event := cloudevents.NewEvent(cloudevents.VersionV03)
 	event.SetID(eventID)
 	event.SetType(dockerHubEventType)
 	event.SetSource(a.source)
