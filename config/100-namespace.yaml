@@ -3,5 +3,4 @@ kind: Namespace
 metadata:
   name: knative-sources
   labels:
-    istio-injection: enabled
     contrib.eventing.knative.dev/release: devel

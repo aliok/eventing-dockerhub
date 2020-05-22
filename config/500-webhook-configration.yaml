@@ -56,5 +56,5 @@ metadata:
   name: webhook-certs
   namespace: knative-sources
   labels:
-    samples.knative.dev/release: devel
+    contrib.eventing.knative.dev/release: devel
 # The data is populated at install time.
